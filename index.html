@@ -42,6 +42,19 @@
             0xa4, 0x23, 0x0f, 0xf7, 0xc2, 0xc7, 0x07, 0x83, 0x61, 0xb7, 0xd6, 0x24, 0xb8, 0xee, 0xaa, 0x9b
         ]);
 
+        // stolen from https://github.com/Maschell/fuse-wiiu/blob/f4793d1d0ef996e91626e3d0d42913a24b682a5a/src/main/java/de/mas/wiiu/jnus/fuse_wiiu/Settings.java#L9
+        ckeyDevHash1 = new Uint8Array([
+            0xE1,0x91,0xBF,0xDB,0x12,0x32,0x53,0x7D,0x7D,0xAD,0xEA,0xD8,0x1F,0x2A,0x48,0xFD,0x6F,0x18,0x8E,0x02
+        ]);
+
+        async function _sha1(bytes) {
+            if (crypto && crypto.subtle && crypto.subtle.digest) {
+                return new Uint8Array(await crypto.subtle.digest("SHA-1", bytes));
+            } else {
+                return new Promise((resolve, reject) => reject("NO_SHA1_SUPPORT"));
+            }
+        }
+
         async function _sha256(bytes) {
             if (crypto && crypto.subtle && crypto.subtle.digest) {
                 return new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
@@ -65,8 +78,6 @@
                         console.log("No SHA256 Support!");
                         infoDom.innerHTML = '<p class="text-warning">Can\'t calculate checksum to verify common key, you might need different brwoser!</p>';
                         setCKeyColor(2);
-                        ckeyDom.disabled = false;
-                        ckeyCopyDom.disabled = false;
                         reject("NO_SHA256_SUPPORT");
                     });
                     document.body.appendChild(script);
@@ -77,14 +88,19 @@
         function setCKeyColor(success) {
             ckeyDom.classList.remove("text-danger");
             ckeyDom.classList.remove("text-warning");
+            ckeyDom.classList.remove("text-info");
             ckeyDom.classList.remove("text-success");
             if (success === true) {
                 ckeyDom.classList.add("text-success");
             } else if (success === 2) {
                 ckeyDom.classList.add("text-warning");
+            } else if (success === 3) {
+                ckeyDom.classList.add("text-info");
             } else {
                 ckeyDom.classList.add("text-danger");
             }
+            ckeyDom.disabled = !success;
+            ckeyCopyDom.disabled = !success;
         }
 
         async function fileSelected(filelist) {
@@ -98,15 +114,20 @@
                     if (indexedDB.cmp(sha, ckeyHash) === 0) {
                         infoDom.innerText = "Wii U Common Key is shown above!";
                         setCKeyColor(true);
-                        ckeyDom.disabled = false;
-                        ckeyCopyDom.disabled = false;
                         return;
+                    }
+                    try {
+                        const sha1 = await _sha1(ckey);
+                        if (indexedDB.cmp(sha1, ckeyDevHash1) === 0) {
+                            infoDom.innerText = "Dev Console detected ( ͡° ͜ʖ ͡°)";
+                            setCKeyColor(3);
+                            return;
+                        }
+                    } catch (err) {
                     }
                 }
             }
             setCKeyColor(false);
-            ckeyDom.disabled = true;
-            ckeyCopyDom.disabled = true;
             infoDom.innerText = "The file you selected is not valid.";
         }
 
