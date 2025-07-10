@@ -75,7 +75,7 @@
                     script.addEventListener("error", () => {
                         document.body.appendChild(script);
                         console.log("No SHA256 Support!");
-                        infoDom.innerHTML = '<p class="text-warning">Can\'t calculate checksum to verify common key, you might need different brwoser!</p>';
+                        infoDom.innerHTML = '<p class="text-warning">Can\'t calculate checksum to verify common key. You should try a different browser.</p>';
                         setCKeyColor(2);
                         reject("NO_SHA256_SUPPORT");
                     });
